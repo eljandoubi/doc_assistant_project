@@ -1,17 +1,31 @@
-from typing import TypedDict, Annotated, List, Dict, Any, Optional, Literal, Tuple # noqa
-from langchain.agents import create_agent
-from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, MessagesPlaceholder
-from langchain_core.runnables import RunnableConfig
-from pydantic import BaseModel
-from langgraph.graph import StateGraph, END
-from langgraph.graph.message import add_messages
-from langgraph.prebuilt import  tools_condition, ToolNode # noqa
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage # noqa
 import operator
+from typing import Annotated, Any, Dict, List, Optional, Tuple, TypedDict
+
+from langchain.agents import create_agent
+from langchain_core.messages import BaseMessage, ToolMessage
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+    MessagesPlaceholder,
+    SystemMessagePromptTemplate,
+)
+from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph import END, StateGraph
+from langgraph.graph.message import add_messages
+from pydantic import BaseModel
+
+from prompts import (
+    MEMORY_SUMMARY_PROMPT,
+    get_chat_prompt_template,
+    get_intent_classification_prompt,
+)
 from schemas import (
-    UserIntent, AnswerResponse, SummarizationResponse, CalculationResponse, UpdateMemoryResponse 
-) # noqa
-from prompts import get_intent_classification_prompt, get_chat_prompt_template, MEMORY_SUMMARY_PROMPT
+    AnswerResponse,
+    CalculationResponse,
+    SummarizationResponse,
+    UpdateMemoryResponse,
+    UserIntent,
+)
 
 
 class AgentState(TypedDict):
@@ -119,7 +133,7 @@ def qa_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     }
 
 
-# TODO: Implement the summarization_agent function. Refer to README.md Task 2.3
+# Implement the summarization_agent function. Refer to README.md Task 2.3
 def summarization_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     """
     Handle summarization tasks and record the action.
@@ -146,7 +160,7 @@ def summarization_agent(state: AgentState, config: RunnableConfig) -> AgentState
     }
 
 
-# TODO: Implement the calculation_agent function. Refer to README.md Task 2.3
+# Implement the calculation_agent function. Refer to README.md Task 2.3
 def calculation_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     """
     Handle calculation tasks and record the action.
@@ -173,7 +187,7 @@ def calculation_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     }
 
 
-# TODO: Finish implementing the update_memory function. Refer to README.md Task 2.4
+# Finish implementing the update_memory function. Refer to README.md Task 2.4
 def update_memory(state: AgentState, config: RunnableConfig) -> AgentState:
     """
     Update conversation memory and record the action.
@@ -203,7 +217,7 @@ def should_continue(state: AgentState) -> str:
     """Router function"""
     return state.get("next_step", "end")
 
-# TODO: Complete the create_workflow function. Refer to README.md Task 2.5
+# Complete the create_workflow function. Refer to README.md Task 2.5
 def create_workflow(llm, tools):
     """
     Creates the LangGraph agents.
@@ -211,24 +225,27 @@ def create_workflow(llm, tools):
     """
     workflow = StateGraph(AgentState)
 
-    # TODO: Add all the nodes to the workflow by calling workflow.add_node(...)
+    # Add all the nodes to the workflow by calling workflow.add_node(...)
+    workflow.add_node("classify_intent",classify_intent)
+    workflow.add_node("qa_agent",qa_agent)
+    workflow.add_node("summarization_agent",summarization_agent)
+    workflow.add_node("calculation_agent",calculation_agent)
+    workflow.add_node("update_memory ",update_memory)
 
     workflow.set_entry_point("classify_intent")
     workflow.add_conditional_edges(
         "classify_intent",
         should_continue,
-        {
-            # TODO: Map the intent strings to the correct node names
-            "end": END
-        }
     )
 
-    # TODO: For each node add an edge that connects it to the update_memory node
+    #  For each node add an edge that connects it to the update_memory node
     # qa_agent -> update_memory
     # summarization_agent -> update_memory
     # calculation_agent -> update_memory
+  
+    workflow.add_edge(["qa_agent","summarization_agent","calculation_agent"],"update_memory")
 
     workflow.add_edge("update_memory", END)
 
-    # TODO Modify the return values below by adding a checkpointer with InMemorySaver
-    return workflow.compile()
+    # Modify the return values below by adding a checkpointer with InMemorySaver
+    return workflow.compile(checkpointer=InMemorySaver())

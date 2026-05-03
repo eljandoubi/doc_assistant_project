@@ -1,17 +1,16 @@
-import os
 import json
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+import os
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI
 
-from schemas import SessionState
+from agent import AgentState, create_workflow
 from retrieval import SimulatedRetriever
-from tools import get_all_tools, ToolLogger
-from agent import create_workflow, AgentState
-from prompts import MEMORY_SUMMARY_PROMPT
+from schemas import SessionState
+from tools import ToolLogger, get_all_tools
 
 
 class DocumentAssistant:
@@ -120,9 +119,9 @@ class DocumentAssistant:
         # Refer to README.md Task 2.6 for details
         config = {
             "configurable": {
-                "thread_id": # TODO: Set this to the session id of the current sessions
-                "llm": # TODO Set this to the LLM instance (self.llm)
-                "tools": # TODO Set this to the list of tools
+                "thread_id": self.current_session.session_id, # Set this to the session id of the current sessions
+                "llm": self.llm, #Set this to the LLM instance (self.llm)
+                "tools": self.tools # Set this to the list of tools
             }
         }
 
