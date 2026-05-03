@@ -3,12 +3,12 @@ Tool definitions for the agent using @tool decorator
 Think of these as the agent's Swiss Army knife 🔧 - each tool has a specific purpose!
 """
 
-from typing import Dict, Any, List, Optional, Literal
-from langchain.tools import tool
-from pydantic import BaseModel, Field
-import re
 import json
+import re
 from datetime import datetime
+from typing import Any, Dict, List, Literal, Optional
+
+from langchain.tools import tool
 
 
 class ToolLogger:
@@ -59,15 +59,61 @@ class ToolLogger:
             json.dump(self.logs, f, indent=2)
 
 
-# TODO: Implement the calculator tool using the @tool decorator.
+# Implement the calculator tool using the @tool decorator.
 # This tool should safely evaluate mathematical expressions and log its usage.
-# Refer to README.md Task 4.1 for detailed implementation requirements.
 def create_calculator_tool(logger: ToolLogger):
     """
-    Creates a calculator tool - TO BE IMPLEMENTED
+    Creates a calculator tool
     """
-    # Your implementation here
-    pass
+
+    @tool
+    def calculator(expression: str) -> str:
+        """
+        Safely evaluate a mathematical expression.
+
+        Args:
+            expression: A mathematical expression (e.g., "2 + 3 * (4 - 1)")
+
+        Returns:
+            The result of the calculation or an error message
+        """
+        try:
+            # Validate expression (allow only numbers, operators, parentheses, decimals, spaces)
+            if not re.match(r'^[0-9+\-*/().\s]+$', expression):
+                raise ValueError("Invalid characters in expression. Only basic math operations are allowed.")
+
+            # Additional safety: prevent dangerous patterns
+            if "__" in expression or "import" in expression.lower():
+                raise ValueError("Unsafe expression detected.")
+
+            # Evaluate safely (restricted environment)
+            result = eval(expression, {"__builtins__": {}}, {})
+
+            formatted_result = f"Result: {result}"
+
+            # Log usage
+            logger.log_tool_use(
+                "calculator",
+                {"expression": expression},
+                {"result": result}
+            )
+
+            return formatted_result
+
+        except Exception as e:
+            error_msg = f"Calculation error: {str(e)}"
+
+            # Log error
+            logger.log_tool_use(
+                "calculator",
+                {"expression": expression},
+                {"error": error_msg}
+            )
+
+            return error_msg
+
+    return calculator
+    
 
 
 def create_document_search_tool(retriever, logger: ToolLogger):
@@ -298,13 +344,13 @@ def create_document_statistics_tool(retriever, logger: ToolLogger):
             formatted = "DOCUMENT COLLECTION STATISTICS:\n\n"
             formatted += f"Total Documents: {stats['total_documents']}\n"
             formatted += f"Documents with Amounts: {stats['documents_with_amounts']}\n"
-            formatted += f"\nDocument Types:\n"
+            formatted += "\nDocument Types:\n"
 
             for doc_type, count in stats['document_types'].items():
                 formatted += f"  - {doc_type.capitalize()}: {count}\n"
 
             if stats['documents_with_amounts'] > 0:
-                formatted += f"\nFinancial Summary:\n"
+                formatted += "\nFinancial Summary:\n"
                 formatted += f"  - Total Amount: ${stats['total_amount']:,.2f}\n"
                 formatted += f"  - Average Amount: ${stats['average_amount']:,.2f}\n"
                 formatted += f"  - Minimum Amount: ${stats['min_amount']:,.2f}\n"

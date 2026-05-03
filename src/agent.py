@@ -75,7 +75,6 @@ Dict[str, Any], List[str]]:
 
 # Implement the classify_intent function.
 # This function should classify the user's intent and set the next step in the workflow.
-# Refer to README.md Task 2.2
 def classify_intent(state: AgentState, config: RunnableConfig) -> AgentState:
     """
     Classify user intent and update next_step. Also records that this
@@ -98,12 +97,12 @@ def classify_intent(state: AgentState, config: RunnableConfig) -> AgentState:
     # conditional logic to set next_step based on intent
     if response.intent_type == "summarization":
         next_step = "summarization_agen"
-    elif response == "calculation":
+    elif response.intent_type == "calculation":
         next_step = "calculation_agent"
 
     return {
         "actions_taken": ["classify_intent"],
-        "intent":response.intent_type,
+        "intent":response,
         "next_step": next_step
     }
 
@@ -133,7 +132,7 @@ def qa_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     }
 
 
-# Implement the summarization_agent function. Refer to README.md Task 2.3
+# Implement the summarization_agent function.
 def summarization_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     """
     Handle summarization tasks and record the action.
@@ -160,7 +159,7 @@ def summarization_agent(state: AgentState, config: RunnableConfig) -> AgentState
     }
 
 
-# Implement the calculation_agent function. Refer to README.md Task 2.3
+# Implement the calculation_agent function.
 def calculation_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     """
     Handle calculation tasks and record the action.
@@ -187,7 +186,7 @@ def calculation_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     }
 
 
-# Finish implementing the update_memory function. Refer to README.md Task 2.4
+# Finish implementing the update_memory function.
 def update_memory(state: AgentState, config: RunnableConfig) -> AgentState:
     """
     Update conversation memory and record the action.
@@ -217,7 +216,7 @@ def should_continue(state: AgentState) -> str:
     """Router function"""
     return state.get("next_step", "end")
 
-# Complete the create_workflow function. Refer to README.md Task 2.5
+# Complete the create_workflow function.
 def create_workflow(llm, tools):
     """
     Creates the LangGraph agents.
@@ -230,7 +229,7 @@ def create_workflow(llm, tools):
     workflow.add_node("qa_agent",qa_agent)
     workflow.add_node("summarization_agent",summarization_agent)
     workflow.add_node("calculation_agent",calculation_agent)
-    workflow.add_node("update_memory ",update_memory)
+    workflow.add_node("update_memory",update_memory)
 
     workflow.set_entry_point("classify_intent")
     workflow.add_conditional_edges(

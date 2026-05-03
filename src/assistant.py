@@ -115,8 +115,7 @@ class DocumentAssistant:
     def process_message(self, user_input: str) -> Dict[str, Any]:
         """Process a user message using the LangGraph workflow."""
 
-#TODO: Complete the config dictionary to set the thread_ud, llm, and tools to the workflow
-        # Refer to README.md Task 2.6 for details
+        #Complete the config dictionary to set the thread_ud, llm, and tools to the workflow
         config = {
             "configurable": {
                 "thread_id": self.current_session.session_id, # Set this to the session id of the current sessions
